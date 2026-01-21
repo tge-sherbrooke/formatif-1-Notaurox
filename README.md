@@ -18,7 +18,37 @@ Ce formatif vise à vérifier que vous êtes capable de :
 
 ---
 
-## Instructions
+## Workflow de soumission
+
+⚠️ **IMPORTANT** : Pour que votre travail soit accepté, vous devez **exécuter les tests localement sur le Raspberry Pi AVANT de pousser**.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    WORKLOAD FORMATIF F1                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  1. Sur votre ordinateur Windows                              │
+│     └─ Générer une clé SSH                                    │
+│     └─ Copier la clé sur le Pi                                │
+│                                                                  │
+│  2. Sur le Raspberry Pi (via SSH)                             │
+│     └─ Installer UV                                            │
+│     └─ Cloner votre dépôt GitHub                             │
+│     └─ Créer test_bmp280.py                                   │
+│     └─ Exécuter: python3 run_tests.py                         │
+│     └─ Corriger les erreurs                                    │
+│     └─ Pousser: git add, commit, push                         │
+│                                                                  │
+│  3. GitHub Actions valide automatiquement                     │
+│     └─ Vérifie les marqueurs de tests                         │
+│     └─ Confirme que vous avez tout complété                   │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Instructions détaillées
 
 ### Étape 1 : Connexion SSH sans mot de passe (Windows PowerShell)
 
@@ -49,7 +79,7 @@ Vous devriez vous connecter **sans entrer de mot de passe**.
 
 ---
 
-### Étape 2 : Installer UV
+### Étape 2 : Installer UV et cloner le dépôt
 
 Une fois connecté en SSH sur le Raspberry Pi :
 
@@ -60,8 +90,16 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 # Recharger le shell
 source ~/.bashrc
 
-# Vérifier l'installation
-uv --version
+# Configurer Git (IMPORTANT!)
+git config --global user.name "Prénom Nom"
+git config --global user.email "votre.email@etu.cegep.qc.ca"
+git config --global init.defaultbranch main
+```
+
+```bash
+# Cloner votre dépôt GitHub Classroom
+git clone https://github.com/organisation/semaine-1-f1-votre-username.git
+cd semaine-1-f1-votre-username
 ```
 
 ---
@@ -87,7 +125,7 @@ Vous devriez voir :
 
 ---
 
-### Étape 4 : Tester le capteur BMP280
+### Étape 4 : Créer et tester le BMP280
 
 Créez le fichier `test_bmp280.py` :
 
@@ -109,7 +147,7 @@ print(f"Pression: {sensor.pressure:.1f} hPa")
 print(f"Altitude: {sensor.altitude:.1f} m")
 ```
 
-Exécutez :
+Testez-le :
 
 ```bash
 uv run test_bmp280.py
@@ -117,7 +155,7 @@ uv run test_bmp280.py
 
 ---
 
-### Étape 5 : Tester le NeoSlider
+### Étape 5 : Créer et tester le NeoSlider (optionnel)
 
 Créez le fichier `test_neoslider.py` :
 
@@ -143,22 +181,52 @@ pixels = neopixel.NeoPixel(neoslider, 14, 4, pixel_order=neopixel.GRB)
 color_pos = 0
 
 while True:
-    # Remplir les pixels avec la couleur actuelle
     pixels.fill(colorwheel(color_pos))
-    
-    # Avancer vers la couleur suivante
     color_pos = (color_pos + 1) % 256
-    
     time.sleep(0.02)
 ```
 
-Exécutez :
+Testez-le :
 
 ```bash
 uv run test_neoslider.py
 ```
 
-**Validation** : Les 4 LEDs affichent une animation arc-en-ciel. Appuyez `Ctrl+C` pour arrêter.
+---
+
+### Étape 6 : ⭐ Exécuter les tests locaux
+
+**Ceci est l'étape obligatoire avant de pousser!**
+
+```bash
+python3 run_tests.py
+```
+
+Le script `run_tests.py` va :
+1. ✅ Vérifier que votre clé SSH existe
+2. ✅ Vérifier que `test_bmp280.py` est correct
+3. ✅ Vérifier que `test_neoslider.py` est correct (optionnel)
+4. ✅ Scanner le bus I2C pour détecter les capteurs
+5. ✅ Créer des fichiers marqueurs dans `.test_markers/`
+
+Si tous les tests passent, vous verrez :
+```
+🎉 TOUS LES TESTS SONT PASSÉS!
+```
+
+---
+
+### Étape 7 : Pousser votre travail
+
+Une fois les tests passés :
+
+```bash
+git add .
+git commit -m "feat: tests BMP280 et NeoSlider complétés"
+git push
+```
+
+GitHub Actions validera automatiquement que vous avez exécuté les tests.
 
 ---
 
@@ -175,31 +243,27 @@ uv run test_neoslider.py
 
 ---
 
-## Validation automatique
+## Comprendre la validation
 
-### 1. Validation GitHub Actions (CI)
+### Pourquoi exécuter `run_tests.py` AVANT de pousser ?
 
-Les tests GitHub Actions vérifient **la structure du code** sans nécessiter de matériel :
+Le formatif F1 utilise une validation en deux temps :
 
-```bash
-# Les tests s'exécutent automatiquement quand vous poussez sur GitHub
-# Ils utilisent des mocks pour simuler le matériel
+| Étape | Où | Ce qui est validé |
+|-------|----|-------------------|
+| **run_tests.py** | Sur Raspberry Pi | - Clé SSH installée<br>- Scripts créés<br>- Capteurs détectés |
+| **GitHub Actions** | Automatique après push | - Les marqueurs existent<br>- Syntaxe Python valide |
+
+Cette approche garantit que vous avez **réellement** travaillé sur le matériel tout en bénéficiant de l'automatisation GitHub.
+
+### Que se passe-t-il si je pousse sans exécuter les tests ?
+
+GitHub Actions affichera une erreur :
+```
+❌ ERREUR: Les tests locaux n'ont pas été exécutés!
 ```
 
-**Ce qui est testé en CI :**
-- ✅ Présence de `requirements.txt` avec les bonnes dépendances
-- ✅ Syntaxe Python valide
-- ✅ Structure du script (imports, création du capteur, etc.)
-
-### 2. Validation sur le Raspberry Pi
-
-Pour valider le **fonctionnement matériel** sur le Raspberry Pi :
-
-```bash
-uv run validate_setup.py
-# ou
-bash validate_pi.sh
-```
+Vous devrez alors exécuter `python3 run_tests.py` sur le Raspberry Pi et repousser.
 
 ---
 
@@ -208,34 +272,57 @@ bash validate_pi.sh
 Dans ce dépôt, vous devez avoir :
 
 - [ ] `test_bmp280.py` — Script de lecture du capteur BMP280
-- [ ] `test_neoslider.py` — Script de test du NeoSlider
-- [ ] `captures/` — Captures d'écran (optionnel)
+- [ ] `test_neoslider.py` — Script de test du NeoSlider (optionnel)
+- [ ] `.test_markers/` — Dossier créé par `run_tests.py` (ne pas éditer manuellement!)
 
 ---
 
 ## Résumé des commandes
 
 ```bash
-# Sur Windows PowerShell (avant connexion)
+# ===== SUR WINDOWS POWERSHELL =====
 ssh-keygen -t ed25519 -C "mon-raspberry-pi"
 type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh utilisateur@HOSTNAME.local "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"
 ssh utilisateur@HOSTNAME.local
 
-# Sur le Raspberry Pi
+# ===== SUR RASPBERRY PI =====
+# Installer UV
 curl -LsSf https://astral.sh/uv/install.sh | sh && source ~/.bashrc
-sudo apt install -y i2c-tools
+
+# Configurer Git
+git config --global user.name "Prénom Nom"
+git config --global user.email "votre.email@etu.cegep.qc.ca"
+
+# Cloner le dépôt
+git clone https://github.com/organisation/semaine-1-f1-votre-username.git
+cd semaine-1-f1-votre-username
+
+# Activer I2C
 sudo raspi-config nonint do_i2c 0
+sudo apt install -y i2c-tools
+
+# Scanner I2C
 sudo i2cdetect -y 1
+
+# ===== TESTER LES CAPTEURS =====
 uv run test_bmp280.py
 uv run test_neoslider.py
+
+# ===== EXÉCUTER LES TESTS =====
+python3 run_tests.py
+
+# ===== POUSSER =====
+git add .
+git commit -m "feat: tests complétés"
+git push
 ```
 
 ---
 
 ## Ressources
 
-- [Guide de configuration LLM](guide-configuration-rpi.md)
-- [Guide étudiant](guide-etudiant-rpi.md)
+- [Guide de l'étudiant](../deliverables/activites/semaine-1/labo/guide-étudiant.md)
+- [Guide de dépannage](../deliverables/activites/semaine-1/labo/guide-depannage.md)
 
 ---
 
